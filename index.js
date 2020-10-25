@@ -1,15 +1,40 @@
 var fs = require('fs')
+var fetch = require('node-fetch')
+var pokeAPI = "https://pokeapi.co/api/v2/pokemon"
+let pokePromises = []
+var pokeTypes = []
 
-async function readFileAsync() {
-     let string = await fs.readFile('input.txt', (err, data) => {
-          if (err) { 
-              console.error(err)
-            } 
-           return data.toString()
-        }) 
+//get the pokemon names from the input file
+var pokemon = fs.readFileSync('input.txt').toString().split("\n")
+
+async function pokeAPIFetcher(apiURL) {
+    
+    pokemon.forEach(
+        individualPokemon => {
+            pokePromises.push(
+                fetch(`${pokeAPI}/${individualPokemon}`)
+                    .then(response => response.json())
+                    .then(data => {
+                            let currentPokeTypes = []  
+                            Object.values(data.types).forEach( currentPokeData => {
+                                     currentPokeTypes.push(`${currentPokeData.type.name}`)
+                            })
+                        let thisPokemon = {}
+                        thisPokemon[individualPokemon] =  currentPokeTypes.join(", ") 
+                        pokeTypes.push(thisPokemon)
+                    }))
+        })
+}
+
+pokeAPIFetcher();
+
+ Promise.all(pokePromises)
+     .then(() => {
+        pokeTypes.reverse().forEach(thisPoke => {
+            for (const [poke, pokeType] of Object.entries(thisPoke)) {
+                console.log(`${poke}: ${pokeType}`)
+            }
+        })
         
-} 
-
-var pokemon = fs.readFileSync('input.txt' ,'utf8') 
-
-console.log(pokemon)
+        
+    })
